@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 This module implements the core developer interface for pytube.
-
 The problem domain of the :class:`YouTube <YouTube> class focuses almost
 exclusively on the developer interface. Pytube offloads the heavy lifting to
 smaller peripheral modules and functions.
-
 """
 from __future__ import absolute_import
 
@@ -35,7 +33,6 @@ class YouTube(object):
         on_complete_callback=None, proxies=None,
     ):
         """Construct a :class:`YouTube <YouTube>`.
-
         :param str url:
             A valid YouTube watch URL.
         :param bool defer_init:
@@ -46,7 +43,6 @@ class YouTube(object):
         :param func on_complete_callback:
             (Optional) User defined callback function for stream download
             complete events.
-
         """
         self.js = None      # js fetched by js_url
         self.js_url = None  # the url to the js, parsed from watch html
@@ -89,23 +85,18 @@ class YouTube(object):
 
     def prefetch_init(self):
         """Download data, descramble it, and build Stream instances.
-
         :rtype: None
-
         """
         self.prefetch()
         self.init()
 
     def init(self):
         """Descramble the stream data and build Stream instances.
-
         The initialization process takes advantage of Python's
         "call-by-reference evaluation," which allows dictionary transforms to
         be applied in-place, instead of holding references to mutations at each
         interstitial step.
-
         :rtype: None
-
         """
         logger.info('init started')
 
@@ -149,13 +140,10 @@ class YouTube(object):
 
     def prefetch(self):
         """Eagerly download all necessary data.
-
         Eagerly executes all necessary network requests so all other
         operations don't does need to make calls outside of the interpreter
         which blocks for long periods of time.
-
         :rtype: None
-
         """
         self.watch_html = request.get(url=self.watch_url)
         if '<img class="icon meh" src="/yts/img' not in self.watch_html:
@@ -176,17 +164,13 @@ class YouTube(object):
 
     def initialize_stream_objects(self, fmt):
         """Convert manifest data to instances of :class:`Stream <Stream>`.
-
         Take the unscrambled stream data and uses it to initialize
         instances of :class:`Stream <Stream>` for each media stream.
-
         :param str fmt:
             Key in stream manifest (``ytplayer_config``) containing progressive
             download or adaptive streams (e.g.: ``url_encoded_fmt_stream_map``
             or ``adaptive_fmts``).
-
         :rtype: None
-
         """
         stream_manifest = self.player_config_args[fmt]
         for stream in stream_manifest:
@@ -199,12 +183,9 @@ class YouTube(object):
 
     def initialize_caption_objects(self):
         """Populate instances of :class:`Caption <Caption>`.
-
         Take the unscrambled player response data, and use it to initialize
         instances of :class:`Caption <Caption>`.
-
         :rtype: None
-
         """
         if 'captions' not in self.player_config_args['player_response']:
             return
@@ -222,7 +203,6 @@ class YouTube(object):
     @property
     def captions(self):
         """Interface to query caption tracks.
-
         :rtype: :class:`CaptionQuery <CaptionQuery>`.
         """
         return CaptionQuery([c for c in self.caption_tracks])
@@ -230,7 +210,6 @@ class YouTube(object):
     @property
     def streams(self):
         """Interface to query both adaptive (DASH) and progressive streams.
-
         :rtype: :class:`StreamQuery <StreamQuery>`.
         """
         return StreamQuery([s for s in self.fmt_streams])
@@ -238,36 +217,40 @@ class YouTube(object):
     @property
     def thumbnail_url(self):
         """Get the thumbnail url image.
-
         :rtype: str
-
         """
-        return self.player_config_args['thumbnail_url']
+        return (
+            self.player_config_args
+            .get('player_response', {})
+            .get('videoDetails', {})
+            .get('thumbnail', {})
+            .get('thumbnails', [])[0]
+            .get('url')
+        )
 
     @property
     def title(self):
         """Get the video title.
-
         :rtype: str
-
         """
-        return self.player_config_args['title']
+        return (
+            self.player_config_args
+            .get('player_response', {})
+            .get('videoDetails', {})
+            .get('title')
+        )
 
     @property
     def description(self):
         """Get the video description.
-
         :rtype: str
-
         """
         return self.vid_descr
 
     @property
     def rating(self):
         """Get the video average rating.
-
         :rtype: str
-
         """
         return (
             self.player_config_args
@@ -279,18 +262,19 @@ class YouTube(object):
     @property
     def length(self):
         """Get the video length in seconds.
-
         :rtype: str
-
         """
-        return self.player_config_args['length_seconds']
+        return (
+            self.player_config_args
+            .get('player_response', {})
+            .get('videoDetails', {})
+            .get('lengthSeconds')
+        )
 
     @property
     def views(self):
         """Get the number of the times the video has been viewed.
-
         :rtype: str
-
         """
         return (
             self.player_config_args
@@ -301,23 +285,17 @@ class YouTube(object):
 
     def register_on_progress_callback(self, func):
         """Register a download progress callback function post initialization.
-
         :param callable func:
             A callback function that takes ``stream``, ``chunk``,
             ``file_handle``, ``bytes_remaining`` as parameters.
-
         :rtype: None
-
         """
         self.stream_monostate['on_progress'] = func
 
     def register_on_complete_callback(self, func):
         """Register a download complete callback function post initialization.
-
         :param callable func:
             A callback function that takes ``stream`` and  ``file_handle``.
-
         :rtype: None
-
         """
         self.stream_monostate['on_complete'] = func
